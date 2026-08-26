@@ -1677,7 +1677,7 @@ const char* getCANInterfaceName(CAN_Interface interface) {
       return true;
     }
     if (flag.dataset.canreset !== '1') {
-      alert('The BMS only reads the starting sequence request while it powers up, so this setting takes effect at the next BMS power cycle.\n\nTurn on "Periodic BMS reset" or "Allow remote BMS reset via MQTT" if you want the emulator to be able to reset the BMS itself.');
+      alert('The BMS only reads the starting sequence request while it powers up, so this setting takes effect at the next BMS power cycle.\n\nIf you don't use "Periodic BMS reset" or "Allow remote BMS reset via MQTT" make sure you also power-cycle the pack and Battery Emulator manually.');
       return true;
     }
     flag.value = window.confirm('The BMS only reads the starting sequence request while it powers up, so it has to be reset for this setting to take effect.\n\nYes (OK): save and reset the BMS now.\nNo (Cancel): save now, apply at the next BMS reset.') ? '1' : '0';
