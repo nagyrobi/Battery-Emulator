@@ -52,21 +52,6 @@ class NissanLeafBattery : public CanBattery {
              (battery_SOC < 650));
   }
 
-  //The trailing fields of the health block, as the LBC's own PID 0x61 handler writes them. Not
-  //published anywhere yet: their scales are still being pinned down against LeafSpy and the dash,
-  //so they only go to the log. Exposed here so the decode can be tested, since the log macro
-  //compiles to nothing in the test build.
-  struct HealthBlockExtras {
-    uint8_t bars = 0;           //BarCount_SOH, the capacity bars the dash shows
-    uint16_t soh_raw = 0;       //SOH_raw
-    uint16_t soh_internal = 0;  //SOH_Internal
-    uint8_t flags = 0;          //two status bits the handler packs into the byte after them
-    uint16_t hx = 0;            //Hx as last logged alongside them
-    uint16_t soh = 0;           //SOH as last logged alongside them
-    bool seen = false;
-  };
-  const HealthBlockExtras& get_health_block_extras() const { return health_extras; }
-
   BatteryHtmlRenderer& get_status_renderer() { return renderer; }
   static constexpr const char* Name = "Nissan LEAF battery";
 
@@ -342,7 +327,8 @@ class NissanLeafBattery : public CanBattery {
   //Hx and SOH as read from the health block (group 0x61), both in hundredths of a percent, 0 until
   //that group has answered. Kept apart from the group 0x01 Hx so the health block always wins when
   //it is available, rather than the two sources overwriting each other in polling order.
-  HealthBlockExtras health_extras;
+  uint16_t battery_SOHraw_pptt = 0;  //Unfiltered SOH from the health block, 0 until read
+  uint8_t battery_SOH_flags = 0;     //Two status bits the health block carries after the SOH figures
   uint16_t battery_HX_pptt_g61 = 0;
   uint16_t battery_SOH_pptt_g61 = 0;
   uint16_t battery_capacity_cAh = 0;  //Pack capacity in hundredths of an Ah, 0 until read

@@ -209,7 +209,10 @@ static bool heap_metrics_enabled(Battery* b) {
 static const SensorConfig batterySensorConfigTemplate[] = {
     {"SOC", "SoC (scaled)", "%", "battery", always},
     {"SOC_real", "SoC (real)", "%", "battery", always},
-    {"state_of_health", "State of Health", "%", "battery", always},
+    // No device_class: "battery" would file this next to the state of charge in Home Assistant
+    // and take its icon, which is misleading for a health figure. state_class and the unit are
+    // set explicitly further down instead.
+    {"state_of_health", "State of Health", "%", "", always},
     {"temperature_min", "Temperature Min", "°C", "temperature", always},
     {"temperature_max", "Temperature Max", "°C", "temperature", always},
     {"stat_batt_power", "Battery Power", "W", "power", always},
@@ -239,6 +242,7 @@ static const SensorConfig batterySensorConfigTemplate[] = {
     {"min_cell_number", "Min Cell Number", "", "", supports_byd_metrics},
     {"max_cell_number", "Max Cell Number", "", "", supports_byd_metrics},
     {"leaf_hx", "Hx", "%", "", supports_leaf_metrics},
+    {"leaf_soh_raw", "State of Health (raw)", "%", "", supports_leaf_metrics},
     {"leaf_vbat", "VBAT +12 level", "V", "voltage", supports_leaf_metrics},
     {"leaf_capacity_ah", "Actual capacity (Ah)", "Ah", "", supports_leaf_metrics},
     {"leaf_capacity", "Actual capacity", "kWh", "energy_storage", supports_leaf_metrics},
@@ -481,6 +485,9 @@ void set_battery_attributes(JsonDocument& doc, const DATALAYER_BATTERY_TYPE& bat
     if (leaf.battery_HX_pptt != 0u) {
       doc["leaf_hx"] = ((float)leaf.battery_HX_pptt) / 100.0f;
     }
+    if (leaf.battery_SOHraw_pptt != 0u) {
+      doc["leaf_soh_raw"] = ((float)leaf.battery_SOHraw_pptt) / 100.0f;
+    }
     // Same treatment for the 12 V level: omitted until the pack has reported one, so it reads
     // unknown rather than 0.00 V until the first group 1 reply comes back.
     if (leaf.VBAT_mV != 0u) {
@@ -513,8 +520,11 @@ static const char* sensor_discovery_icon(const char* entity_id, const char* devi
     if (strcmp(entity_id, "insulation_resistance") == 0) {
       return "mdi:resistor";
     }
-    if (strcmp(entity_id, "leaf_hx") == 0) {
+    if (strcmp(entity_id, "state_of_health") == 0 || strcmp(entity_id, "leaf_soh_raw") == 0) {
       return "mdi:battery-heart-variant";
+    }
+    if (strcmp(entity_id, "leaf_hx") == 0) {
+      return "mdi:battery-minus-variant";
     }
     // Amp-hours have no device_class, so this one would fall back to Home Assistant's generic
     // icon next to its kWh sibling, which does get one from "energy_storage".
@@ -608,9 +618,11 @@ static bool publish_sensor_discovery(const SensorConfig& config, const char* id_
     doc["state_class"] = "measurement";
     doc["suggested_display_precision"] = 0;
   }
-  // "leaf_hx" is a percentage with no matching device_class, so it misses the state_class
-  // assignment above too. Mark it as a measurement and show two decimals, like LeafSpy does.
-  if (strcmp(config.entity_id, "leaf_hx") == 0) {
+  // The state of health figures are percentages carried with no device_class, so they miss the
+  // state_class assignment above too. Mark them as measurements and show two decimals, like
+  // LeafSpy does.
+  if (strcmp(config.entity_id, "leaf_hx") == 0 || strcmp(config.entity_id, "leaf_soh_raw") == 0 ||
+      strcmp(config.entity_id, "state_of_health") == 0) {
     doc["state_class"] = "measurement";
     doc["suggested_display_precision"] = 2;
   }

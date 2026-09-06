@@ -122,15 +122,8 @@ TEST(NissanLeafHealthTests, ShouldDecodeTrailingHealthBlockFields) {
   battery->handle_incoming_can_frame(leaf_7bb_frame({0x21, 0x0C, 0x26, 0x48, 0x25, 0xE4, 0x03, 0x00}));
   battery->update_values();
 
-  const auto& extras = battery->get_health_block_extras();
-  EXPECT_TRUE(extras.seen);
-  EXPECT_EQ(extras.bars, 12u);
-  EXPECT_EQ(extras.soh_raw, 9800u);
-  EXPECT_EQ(extras.soh_internal, 9700u);
-  EXPECT_EQ(extras.flags, 0x03u);
-  // Hx and SOH are printed on the same line, so they are remembered with the rest.
-  EXPECT_EQ(extras.hx, 11000u);
-  EXPECT_EQ(extras.soh, 10000u);
+  EXPECT_EQ(datalayer_extended.nissanleaf.battery_SOHraw_pptt, 9800u);
+  EXPECT_EQ(datalayer_extended.nissanleaf.battery_SOH_flags, 0x03u);
 
   // The fields ahead of them are untouched by the second frame.
   EXPECT_EQ(datalayer_extended.nissanleaf.battery_HX_pptt, 11000u);
@@ -145,7 +138,20 @@ TEST(NissanLeafHealthTests, ShouldMaskUndefinedHealthBlockFlagBits) {
   battery->handle_incoming_can_frame(leaf_7bb_frame({0x21, 0x0C, 0x26, 0x48, 0x25, 0xE4, 0xFE, 0x00}));
   battery->update_values();
 
-  EXPECT_EQ(battery->get_health_block_extras().flags, 0x02u);
+  EXPECT_EQ(datalayer_extended.nissanleaf.battery_SOH_flags, 0x02u);
+}
+
+// A freshly reset pack reports exactly 10000 in both SOH fields, the firmware's own 100.00 %.
+TEST(NissanLeafHealthTests, ShouldDecodeResetPackHealthBlock) {
+  auto battery = battery_polling();
+
+  battery->handle_incoming_can_frame(leaf_7bb_frame({0x11, 0x4B, 0x61, 0x61, 0x27, 0x10, 0x27, 0x10}));
+  battery->handle_incoming_can_frame(leaf_7bb_frame({0x21, 0xFF, 0x27, 0x10, 0x27, 0x10, 0x00, 0x00}));
+  battery->update_values();
+
+  EXPECT_EQ(datalayer.battery.status.soh_pptt, 10000u);
+  EXPECT_EQ(datalayer_extended.nissanleaf.battery_SOHraw_pptt, 10000u);
+  EXPECT_EQ(datalayer_extended.nissanleaf.battery_SOH_flags, 0x00u);
 }
 
 // Hx above 100 % is a normal reading on a healthy pack and must survive intact.

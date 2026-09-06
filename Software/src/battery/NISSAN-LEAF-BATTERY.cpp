@@ -335,6 +335,8 @@ void NissanLeafBattery::
     datalayer_nissan->HeatingStop = battery_Heating_Stop;
     datalayer_nissan->HeatingStart = battery_Heating_Start;
     datalayer_nissan->HeaterSendRequest = battery_Batt_Heater_Mail_Send_Request;
+    datalayer_nissan->battery_SOHraw_pptt = battery_SOHraw_pptt;
+    datalayer_nissan->battery_SOH_flags = battery_SOH_flags;
     datalayer_nissan->battery_HX_pptt = (battery_HX_pptt_g61 != 0) ? battery_HX_pptt_g61 : battery_HX_pptt;
     datalayer_nissan->ChargeCountQC = battery_charge_count_qc;
     datalayer_nissan->ChargeCountL1L2 = battery_charge_count_l1l2;
@@ -865,36 +867,22 @@ void NissanLeafBattery::handle_incoming_can_frame(CAN_frame rx_frame) {
           }
         }
         if (group_7bb_frame == 1) {  //Second frame, payload[6..12] in u8[1..7]
-          //Everything the LBC's PID 0x61 handler writes after Hx and SOH:
+          //What the LBC's PID 0x61 handler writes after Hx and SOH:
           //  payload[6]     BarCount_SOH   the capacity bars shown on the dash
-          //  payload[7..8]  SOH_raw
-          //  payload[9..10] SOH_Internal
-          //  payload[11]    two status bits, packed into the low two bits of the byte
-          //The two SOH figures most likely share the hundredths scale of the SOH above them
-          //(10000 = 100.00 %), but that is not settled, so nothing here is published - the values
-          //go to the log raw, to be compared against LeafSpy and the dash on a known pack.
-          uint8_t bars = rx_frame.data.u8[1];
+          //  payload[7..8]  SOH_raw        the unfiltered state of health
+          //  payload[9..10] SOH_Internal   the filtered figure, same value the pack publishes
+          //  payload[11]    two status bits, in the low two bits of the byte
+          //Only the two that carry something the pack does not already report are read. Bench
+          //captures put BarCount_SOH at 0xFF on both a degraded and a freshly reset pack, so it
+          //is not populated with the pack off a car, and SOH_Internal came back bit-identical to
+          //the SOH above it on both.
+          //Same hundredths scale as that SOH: a pack with its degradation just reset reports
+          //exactly 10000 here, which is the firmware's own 100.00 %.
           uint16_t soh_raw = (uint16_t)((rx_frame.data.u8[2] << 8) | rx_frame.data.u8[3]);
-          uint16_t soh_internal = (uint16_t)((rx_frame.data.u8[4] << 8) | rx_frame.data.u8[5]);
-          uint8_t flags = (uint8_t)(rx_frame.data.u8[6] & 0x03);
-
-          //Logged on change rather than every poll, so a pack sitting still produces one line
-          //instead of one every time the group comes round. Hx and SOH are part of that test as
-          //well as the line: they are printed here, so a move in either has to produce a new line
-          //or the log would silently stop tracking the two values most likely to drift.
-          if (!health_extras.seen || (bars != health_extras.bars) || (soh_raw != health_extras.soh_raw) ||
-              (soh_internal != health_extras.soh_internal) || (flags != health_extras.flags) ||
-              (battery_HX_pptt_g61 != health_extras.hx) || (battery_SOH_pptt_g61 != health_extras.soh)) {
-            health_extras.hx = battery_HX_pptt_g61;
-            health_extras.soh = battery_SOH_pptt_g61;
-            health_extras.bars = bars;
-            health_extras.soh_raw = soh_raw;
-            health_extras.soh_internal = soh_internal;
-            health_extras.flags = flags;
-            health_extras.seen = true;
-            DEBUG_PRINTF("[LEAF] 0x61 Hx=%u SOH=%u bars=%u SOHraw=%u SOHint=%u flags=0x%02X\n", battery_HX_pptt_g61,
-                         battery_SOH_pptt_g61, bars, soh_raw, soh_internal, flags);
+          if ((soh_raw > 0u) && (soh_raw <= 10000u)) {
+            battery_SOHraw_pptt = soh_raw;
           }
+          battery_SOH_flags = (uint8_t)(rx_frame.data.u8[6] & 0x03);
         }
 
         if (group_7bb_frame == 2) {  //Third frame, payload[13..19] in u8[1..7]

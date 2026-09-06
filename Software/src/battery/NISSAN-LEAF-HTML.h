@@ -59,6 +59,17 @@ class NissanLeafHtmlRenderer : public BatteryHtmlRenderer {
     } else {
       content += String("<h4>Actual capacity: Unknown</h4>");
     }
+    //The unfiltered state of health, with the two status bits that sit beside it in the same
+    //block. Both bits come back clear on a pack whose degradation has just been reset and set on
+    //one with history, so they are shown raw rather than interpreted.
+    if (nissan_dl->battery_SOHraw_pptt) {
+      char soh_flags[8];
+      snprintf(soh_flags, sizeof(soh_flags), "0x%02X", nissan_dl->battery_SOH_flags);
+      content +=
+          "<h4>SOH raw: " + String(nissan_dl->battery_SOHraw_pptt / 100.0f, 2) + " (" + String(soh_flags) + ")</h4>";
+    } else {
+      content += String("<h4>SOH raw: Unknown</h4>");
+    }
     //A used pack always has AC charges on it, so a zero L1/L2 count means the group was not read yet.
     content +=
         "<h4>QC charge count: " + (nissan_dl->ChargeCountL1L2 ? String(nissan_dl->ChargeCountQC) : String("Unknown")) +
