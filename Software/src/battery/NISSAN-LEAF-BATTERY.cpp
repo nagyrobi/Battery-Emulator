@@ -864,6 +864,34 @@ void NissanLeafBattery::handle_incoming_can_frame(CAN_frame rx_frame) {
             battery_SOH_pptt_g61 = soh_raw;
           }
         }
+        if (group_7bb_frame == 1) {  //Second frame, payload[6..12] in u8[1..7]
+          //Everything the LBC's PID 0x61 handler writes after Hx and SOH:
+          //  payload[6]     BarCount_SOH   the capacity bars shown on the dash
+          //  payload[7..8]  SOH_raw
+          //  payload[9..10] SOH_Internal
+          //  payload[11]    two status bits, packed into the low two bits of the byte
+          //The two SOH figures most likely share the hundredths scale of the SOH above them
+          //(10000 = 100.00 %), but that is not settled, so nothing here is published - the values
+          //go to the log raw, to be compared against LeafSpy and the dash on a known pack.
+          uint8_t bars = rx_frame.data.u8[1];
+          uint16_t soh_raw = (uint16_t)((rx_frame.data.u8[2] << 8) | rx_frame.data.u8[3]);
+          uint16_t soh_internal = (uint16_t)((rx_frame.data.u8[4] << 8) | rx_frame.data.u8[5]);
+          uint8_t flags = (uint8_t)(rx_frame.data.u8[6] & 0x03);
+
+          //Logged on change rather than every poll, so a pack sitting still produces one line
+          //instead of one every time the group comes round.
+          if (!health_extras.seen || (bars != health_extras.bars) || (soh_raw != health_extras.soh_raw) ||
+              (soh_internal != health_extras.soh_internal) || (flags != health_extras.flags)) {
+            health_extras.bars = bars;
+            health_extras.soh_raw = soh_raw;
+            health_extras.soh_internal = soh_internal;
+            health_extras.flags = flags;
+            health_extras.seen = true;
+            DEBUG_PRINTF("[LEAF] 0x61 Hx=%u SOH=%u bars=%u SOHraw=%u SOHint=%u flags=0x%02X\n", battery_HX_pptt_g61,
+                         battery_SOH_pptt_g61, bars, soh_raw, soh_internal, flags);
+          }
+        }
+
         if (group_7bb_frame == 2) {  //Third frame, payload[13..19] in u8[1..7]
           //ZE1 carries the pack capacity at payload[14..17], a u32 in ten-thousandths of an Ah.
           if (LEAF_battery_Type == ZE1_BATTERY) {

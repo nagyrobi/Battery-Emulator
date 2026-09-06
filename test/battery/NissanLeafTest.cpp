@@ -111,6 +111,40 @@ TEST(NissanLeafHealthTests, ShouldDecodeHealthBlockFromLongFirstFrame) {
   EXPECT_TRUE(datalayer.battery.status.soh_available);
 }
 
+// The LBC's PID 0x61 handler writes BarCount_SOH, SOH_raw, SOH_Internal and two status bits
+// straight after Hx and SOH, so they land in the second frame of the reply.
+TEST(NissanLeafHealthTests, ShouldDecodeTrailingHealthBlockFields) {
+  auto battery = battery_polling();
+
+  // 11 4B 61 61 | Hx 0x2AF8 | SOH 0x2710
+  battery->handle_incoming_can_frame(leaf_7bb_frame({0x11, 0x4B, 0x61, 0x61, 0x2A, 0xF8, 0x27, 0x10}));
+  // 21 | bars 0x0C | SOH_raw 0x2648 | SOH_Internal 0x25E4 | flags 0x03 | payload[12]
+  battery->handle_incoming_can_frame(leaf_7bb_frame({0x21, 0x0C, 0x26, 0x48, 0x25, 0xE4, 0x03, 0x00}));
+  battery->update_values();
+
+  const auto& extras = battery->get_health_block_extras();
+  EXPECT_TRUE(extras.seen);
+  EXPECT_EQ(extras.bars, 12u);
+  EXPECT_EQ(extras.soh_raw, 9800u);
+  EXPECT_EQ(extras.soh_internal, 9700u);
+  EXPECT_EQ(extras.flags, 0x03u);
+
+  // The fields ahead of them are untouched by the second frame.
+  EXPECT_EQ(datalayer_extended.nissanleaf.battery_HX_pptt, 11000u);
+  EXPECT_EQ(datalayer.battery.status.soh_pptt, 10000u);
+}
+
+// Only the low two bits of that byte are defined by the handler.
+TEST(NissanLeafHealthTests, ShouldMaskUndefinedHealthBlockFlagBits) {
+  auto battery = battery_polling();
+
+  battery->handle_incoming_can_frame(leaf_7bb_frame({0x11, 0x4B, 0x61, 0x61, 0x2A, 0xF8, 0x27, 0x10}));
+  battery->handle_incoming_can_frame(leaf_7bb_frame({0x21, 0x0C, 0x26, 0x48, 0x25, 0xE4, 0xFE, 0x00}));
+  battery->update_values();
+
+  EXPECT_EQ(battery->get_health_block_extras().flags, 0x02u);
+}
+
 // Hx above 100 % is a normal reading on a healthy pack and must survive intact.
 TEST(NissanLeafHealthTests, ShouldNotClampHxAboveOneHundredPercent) {
   auto battery = battery_polling();
