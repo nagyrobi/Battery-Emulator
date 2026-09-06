@@ -61,6 +61,8 @@ class NissanLeafBattery : public CanBattery {
     uint16_t soh_raw = 0;       //SOH_raw
     uint16_t soh_internal = 0;  //SOH_Internal
     uint8_t flags = 0;          //two status bits the handler packs into the byte after them
+    uint16_t hx = 0;            //Hx as last logged alongside them
+    uint16_t soh = 0;           //SOH as last logged alongside them
     bool seen = false;
   };
   const HealthBlockExtras& get_health_block_extras() const { return health_extras; }

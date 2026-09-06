@@ -128,6 +128,9 @@ TEST(NissanLeafHealthTests, ShouldDecodeTrailingHealthBlockFields) {
   EXPECT_EQ(extras.soh_raw, 9800u);
   EXPECT_EQ(extras.soh_internal, 9700u);
   EXPECT_EQ(extras.flags, 0x03u);
+  // Hx and SOH are printed on the same line, so they are remembered with the rest.
+  EXPECT_EQ(extras.hx, 11000u);
+  EXPECT_EQ(extras.soh, 10000u);
 
   // The fields ahead of them are untouched by the second frame.
   EXPECT_EQ(datalayer_extended.nissanleaf.battery_HX_pptt, 11000u);

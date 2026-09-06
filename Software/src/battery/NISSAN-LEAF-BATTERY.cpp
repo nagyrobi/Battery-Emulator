@@ -879,9 +879,14 @@ void NissanLeafBattery::handle_incoming_can_frame(CAN_frame rx_frame) {
           uint8_t flags = (uint8_t)(rx_frame.data.u8[6] & 0x03);
 
           //Logged on change rather than every poll, so a pack sitting still produces one line
-          //instead of one every time the group comes round.
+          //instead of one every time the group comes round. Hx and SOH are part of that test as
+          //well as the line: they are printed here, so a move in either has to produce a new line
+          //or the log would silently stop tracking the two values most likely to drift.
           if (!health_extras.seen || (bars != health_extras.bars) || (soh_raw != health_extras.soh_raw) ||
-              (soh_internal != health_extras.soh_internal) || (flags != health_extras.flags)) {
+              (soh_internal != health_extras.soh_internal) || (flags != health_extras.flags) ||
+              (battery_HX_pptt_g61 != health_extras.hx) || (battery_SOH_pptt_g61 != health_extras.soh)) {
+            health_extras.hx = battery_HX_pptt_g61;
+            health_extras.soh = battery_SOH_pptt_g61;
             health_extras.bars = bars;
             health_extras.soh_raw = soh_raw;
             health_extras.soh_internal = soh_internal;
