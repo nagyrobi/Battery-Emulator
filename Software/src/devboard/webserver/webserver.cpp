@@ -1591,27 +1591,29 @@ String processor(const String& var) {
     } else {
       content += "<span>&#10003;</span>";
     }
-    content += " Inverter allows contactor closing: ";
+    content += "<br>Inverter allows contactor closing: ";
     if (datalayer.system.status.inverter_allows_contactor_closing == true) {
       content += "<span>&#10003;</span></h4>";
     } else {
       content += "<span style='color: red;'>&#10005;</span></h4>";
     }
     if (battery2) {
-      content += "<h4>Secondary battery allowed to join ";
+      content += "<h4>2ⁿᵈ battery allowed to join: ";
       if (datalayer.system.status.battery2_allowed_contactor_closing == true) {
         content += "<span>&#10003;</span>";
       } else {
         content += "<span style='color: red;'>&#10005; (voltage mismatch)</span>";
       }
+      content += "</h4>";
     }
     if (battery3) {
-      content += "<h4>Third battery allowed to join ";
+      content += "<h4>3ʳᵈ battery allowed to join: ";
       if (datalayer.system.status.battery3_allowed_contactor_closing == true) {
         content += "<span>&#10003;</span>";
       } else {
         content += "<span style='color: red;'>&#10005; (voltage mismatch)</span>";
       }
+      content += "</h4>";
     }
 
     if (!contactor_control_enabled) {
@@ -1622,11 +1624,15 @@ String processor(const String& var) {
           "powering the contactors. Battery-Emulator will have limited amount of control over the contactors!</span>";
       content += "</div>";
     } else {  //contactor_control_enabled TRUE
-      content += "<div class=\"tooltip\"><h4>Contactors controlled by emulator, state: ";
+      content += "<div class=\"tooltip\"><h4>Contactors control - state: ";
       if (datalayer.system.status.contactors_engaged == 0) {
         content += "<span style='color: red;'>OFF (DISCONNECTED)</span>";
       } else if (datalayer.system.status.contactors_engaged == 1) {
-        content += "<span style='color: green;'>ON</span>";
+        if (pwm_contactor_control) {
+          content += "<span style='color: green;'>Economized</span>";
+        } else {
+          content += "<span style='color: green;'>ON</span>";
+        }
       } else if (datalayer.system.status.contactors_engaged == 2) {
         content += "<span style='color: red;'>OFF (FAULT)</span>";
         content += "<span class=\"tooltip-icon\"> [!]</span>";
@@ -1638,7 +1644,7 @@ String processor(const String& var) {
       }
       content += "</h4></div>";
       if (contactor_control_enabled_double_battery && battery2) {
-        content += "<h4>Secondary battery contactor, state: ";
+        content += "<h4>Contactor 2ⁿᵈ - state: ";
         if (pwm_contactor_control) {
           if (datalayer.system.status.contactors_battery2_engaged) {
             content += "<span style='color: green;'>Economized</span>";
@@ -1657,7 +1663,7 @@ String processor(const String& var) {
         content += "</h4>";
       }
       if (contactor_control_enabled_triple_battery && battery3) {
-        content += "<h4>Third battery contactor, state: ";
+        content += "<h4>Contactor 3ʳᵈ - state: ";
         if (pwm_contactor_control) {
           if (datalayer.system.status.contactors_battery3_engaged) {
             content += "<span style='color: green;'>Economized</span>";
