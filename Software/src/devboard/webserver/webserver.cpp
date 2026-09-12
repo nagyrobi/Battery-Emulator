@@ -1644,7 +1644,7 @@ String processor(const String& var) {
       }
       content += "</h4></div>";
       if (contactor_control_enabled_double_battery && battery2) {
-        content += "<h4>Contactor 2ⁿᵈ - state: ";
+        content += "<h4>Contactor for 2ⁿᵈ - state: ";
         if (pwm_contactor_control) {
           if (datalayer.system.status.contactors_battery2_engaged) {
             content += "<span style='color: green;'>Economized</span>";
@@ -1663,7 +1663,7 @@ String processor(const String& var) {
         content += "</h4>";
       }
       if (contactor_control_enabled_triple_battery && battery3) {
-        content += "<h4>Contactor 3ʳᵈ - state: ";
+        content += "<h4>Contactor for 3ʳᵈ - state: ";
         if (pwm_contactor_control) {
           if (datalayer.system.status.contactors_battery3_engaged) {
             content += "<span style='color: green;'>Economized</span>";
