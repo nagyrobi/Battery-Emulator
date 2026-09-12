@@ -49,6 +49,11 @@ class ContactorEconomizeBattery2Test : public ::testing::Test {
     contactor_control_inverted_logic = false;
     pwm_contactor_control = true;
     pwm_hold_duty = 250;
+    // init_contactors() also drives BMS_POWER when either reset feature is on, and both
+    // are globals that another suite may have left set. CI runs the binary shuffled, so
+    // state this fixture depends on has to be stated here rather than inherited.
+    periodic_bms_reset = false;
+    remote_bms_reset = false;
     datalayer.system.status.battery2_allowed_contactor_closing = true;
     second_contactors = esp32hal->SECOND_BATTERY_CONTACTORS_PIN();
     clear_duty_writes();
@@ -68,7 +73,7 @@ class ContactorEconomizeBattery2Test : public ::testing::Test {
     handle_contactors_battery2();
   }
 
-  // The duty last written to the contactor pin, or nothing if it was never driven.
+  // The duty last written to the given pin, or nothing if PWM never drove it.
   static std::optional<uint32_t> last_duty(uint8_t pin) {
     std::optional<uint32_t> duty;
     for (const auto& write : get_duty_writes()) {
@@ -77,6 +82,19 @@ class ContactorEconomizeBattery2Test : public ::testing::Test {
       }
     }
     return duty;
+  }
+
+  // The level last written to the given pin, or nothing if digitalWrite never drove it.
+  // Scoped to one pin on purpose: other pins (BMS power, indicator LEDs) are driven by
+  // code this suite is not testing, and the assertions must not depend on them.
+  static std::optional<uint8_t> last_level(uint8_t pin) {
+    std::optional<uint8_t> level;
+    for (const auto& write : get_pin_writes()) {
+      if (write.pin == pin) {
+        level = write.value;
+      }
+    }
+    return level;
   }
 
   uint8_t second_contactors = 0;
@@ -88,7 +106,7 @@ TEST_F(ContactorEconomizeBattery2Test, InitDrivesThePinThroughPwmWhenEconomizing
   ASSERT_TRUE(init_contactors());
 
   EXPECT_EQ(last_duty(second_contactors), kOffDuty);
-  EXPECT_TRUE(get_pin_writes().empty());  // Nothing driven by digitalWrite
+  EXPECT_FALSE(last_level(second_contactors).has_value());  // Never driven by digitalWrite
 }
 
 // Closing at the hold duty would risk the coil never seating, so the contactor
@@ -148,9 +166,7 @@ TEST_F(ContactorEconomizeBattery2Test, PlainGpioWhenEconomizingIsDisabled) {
   tick_at(kBootMs);
   tick_at(kBootMs + kPullInMs);
 
-  EXPECT_TRUE(get_duty_writes().empty());
-  ASSERT_FALSE(get_pin_writes().empty());
-  EXPECT_EQ(get_pin_writes().back().pin, second_contactors);
-  EXPECT_EQ(get_pin_writes().back().value, HIGH);
+  EXPECT_FALSE(last_duty(second_contactors).has_value());  // Never touched by the LEDC peripheral
+  EXPECT_EQ(last_level(second_contactors), static_cast<uint8_t>(HIGH));
   EXPECT_TRUE(datalayer.system.status.contactors_battery2_engaged);
 }
