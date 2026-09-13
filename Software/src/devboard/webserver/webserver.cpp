@@ -1199,12 +1199,12 @@ String processor(const String& var) {
         content += "<h4 style='color: white;'>Battery protocol: ";
         content += datalayer.system.info.battery_protocol;
         if (battery3) {
-          content += " | ③";
+          content += " ③";
         } else if (battery2) {
-          content += " | ②";
+          content += " ②";
         }
         if (datalayer.battery.info.chemistry == battery_chemistry_enum::LFP) {
-          content += " | LFP";
+          content += " (LFP)";
         }
         content += "</h4>";
       }
