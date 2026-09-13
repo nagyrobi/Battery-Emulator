@@ -1199,9 +1199,9 @@ String processor(const String& var) {
         content += "<h4 style='color: white;'>Battery protocol: ";
         content += datalayer.system.info.battery_protocol;
         if (battery3) {
-          content += " | ✕3";
+          content += " | ③";
         } else if (battery2) {
-          content += " | ✕2";
+          content += " | ②";
         }
         if (datalayer.battery.info.chemistry == battery_chemistry_enum::LFP) {
           content += " | LFP";
