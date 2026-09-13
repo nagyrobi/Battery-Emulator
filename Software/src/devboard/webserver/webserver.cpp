@@ -1199,12 +1199,12 @@ String processor(const String& var) {
         content += "<h4 style='color: white;'>Battery protocol: ";
         content += datalayer.system.info.battery_protocol;
         if (battery3) {
-          content += " (&#10005; 3)";
+          content += " | ✕3";
         } else if (battery2) {
-          content += " (&#10005; 2)";
+          content += " | ✕2";
         }
         if (datalayer.battery.info.chemistry == battery_chemistry_enum::LFP) {
-          content += " (LFP)";
+          content += " | LFP";
         }
         content += "</h4>";
       }
@@ -1587,31 +1587,31 @@ String processor(const String& var) {
 
     content += "<h4>Emulator allows contactor closing: ";
     if (datalayer.system.status.system_status == FAULT) {
-      content += "<span style='color: red;'>&#10008;</span>";
+      content += "<span style='color: red;'>✗</span>";
     } else {
-      content += "<span>&#10004;</span>";
+      content += "<span>✓</span>";
     }
     content += "<br>Inverter allows contactor closing: ";
     if (datalayer.system.status.inverter_allows_contactor_closing == true) {
-      content += "<span>&#10004;</span></h4>";
+      content += "<span>✓</span></h4>";
     } else {
-      content += "<span style='color: red;'>&#10008;</span></h4>";
+      content += "<span style='color: red;'>✗</span></h4>";
     }
     if (battery2) {
       content += "<h4>2ⁿᵈ battery allowed to join: ";
       if (datalayer.system.status.battery2_allowed_contactor_closing == true) {
-        content += "<span>&#10004;</span>";
+        content += "<span>✓</span>";
       } else {
-        content += "<span style='color: red;'>&#10008;<br>(voltage mismatch)</span>";
+        content += "<span style='color: red;'>✗<br>(voltage mismatch)</span>";
       }
       content += "</h4>";
     }
     if (battery3) {
       content += "<h4>3ʳᵈ battery allowed to join: ";
       if (datalayer.system.status.battery3_allowed_contactor_closing == true) {
-        content += "<span>&#10004;</span>";
+        content += "<span>✓</span>";
       } else {
-        content += "<span style='color: red;'>&#10008;<br>(voltage mismatch)</span>";
+        content += "<span style='color: red;'>✗<br>(voltage mismatch)</span>";
       }
       content += "</h4>";
     }
@@ -1692,17 +1692,17 @@ String processor(const String& var) {
 
       content += "<h4>Charger HV Enabled: ";
       if (datalayer.charger.charger_HV_enabled) {
-        content += "<span>&#10004;</span>";
+        content += "<span>✓</span>";
       } else {
-        content += "<span style='color: red;'>&#10008;</span>";
+        content += "<span style='color: red;'>✗</span>";
       }
       content += "</h4>";
 
       content += "<h4>Charger Aux12v Enabled: ";
       if (datalayer.charger.charger_aux12V_enabled) {
-        content += "<span>&#10004;</span>";
+        content += "<span>✓</span>";
       } else {
-        content += "<span style='color: red;'>&#10008;</span>";
+        content += "<span style='color: red;'>✗</span>";
       }
       content += "</h4>";
 
